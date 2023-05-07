@@ -226,6 +226,13 @@ load (const char *file_name_ori, void (**eip) (void), void **esp)
   argv[0] = file_name;
 
   /* parse argv */
+  
+  /*
+   * The difference between strtok_r() and strtok() is that the save_ptr
+   * (placeholder) in strtok_r() is provided by the caller. In pintos, the kernel
+   * separates commands into command line (executable name) and arguments. So we need
+   * to put the address of the arguments somewhere we can reach later.
+   */
   char *token, *save_ptr;
   for (token = strtok_r (file_name, " ", &save_ptr); token != NULL;
        token = strtok_r (NULL, " ", &save_ptr)) 
