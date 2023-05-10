@@ -17,10 +17,20 @@
 #include "threads/palloc.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
+#include "threads/malloc.h"
 
 static thread_func start_process NO_RETURN;
-static bool load (const char *cmdline, void (**eip) (void), void **esp);
 
+/* MODIFICATIONS */
+
+/**
+ * The function was redefined to take parameter saveptr
+ * because in start_process, strtok_r placed null pointer at the first place of command
+ * This separates the filename from arguments
+ * so, saveptr: is a pointer to the start of arguments which is used in setup_stack */
+static bool load (const char *cmdline, void (**eip) (void), void **esp, char **save_ptr);
+
+/* END MODIFICATIONS */
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
    before process_execute() returns.  Returns the new process's
@@ -53,13 +63,15 @@ start_process (void *file_name_)
   char *file_name = file_name_;
   struct intr_frame if_;
   bool success;
+  char *saveptr;
+  file_name = strtok_r((char*)file_name, " ", &saveptr);
 
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
-  success = load (file_name, &if_.eip, &if_.esp);
+  success = load (file_name, &if_.eip, &if_.esp, &saveptr);
 
   /* If load failed, quit. */
   palloc_free_page (file_name);
@@ -194,7 +206,7 @@ struct Elf32_Phdr
 #define PF_W 2          /* Writable. */
 #define PF_R 4          /* Readable. */
 
-static bool setup_stack (void **esp);
+static bool setup_stack (void **esp, char **save_ptr, const char *filename);
 static bool validate_segment (const struct Elf32_Phdr *, struct file *);
 static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
                           uint32_t read_bytes, uint32_t zero_bytes,
@@ -205,49 +217,14 @@ static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
    and its initial stack pointer into *ESP.
    Returns true if successful, false otherwise. */
 bool
-load (const char *file_name_ori, void (**eip) (void), void **esp)
+load (const char *file_name, void (**eip) (void), void **esp, char **saveptr)
 {
-  //printf("In                 \n");
   struct thread *t = thread_current ();
   struct Elf32_Ehdr ehdr;
   struct file *file = NULL;
   off_t file_ofs;
   bool success = false;
   int i;
-
-  /* MODIFICATIONS */
-  int argc = 0;
-  char *argv[32];
-
-  /* we don't want const char * */
-  char file_name_temp[strlen(file_name_ori) + 1];
-  char *file_name = &file_name_temp[0];
-  strlcpy (file_name, file_name_ori, strlen(file_name_ori) + 1);
-  argv[0] = file_name;
-
-  /* parse argv */
-  
-  /*
-   * The difference between strtok_r() and strtok() is that the save_ptr
-   * (placeholder) in strtok_r() is provided by the caller. In pintos, the kernel
-   * separates commands into command line (executable name) and arguments. So we need
-   * to put the address of the arguments somewhere we can reach later.
-   */
-  char *token, *save_ptr;
-  for (token = strtok_r (file_name, " ", &save_ptr); token != NULL;
-       token = strtok_r (NULL, " ", &save_ptr)) 
-    {
-      argv[argc] = token;
-      argc++;
-    }
-
-  strlcpy (t->name, argv[0], sizeof t->name);
-
-  /* contains a zero at the end */
-  char *addresses[argc + 1];
-  addresses[argc] = 0;
-  /* END MODIFICATIONS */
-
 
   /* Allocate and activate page directory. */
   t->pagedir = pagedir_create ();
@@ -336,45 +313,12 @@ load (const char *file_name_ori, void (**eip) (void), void **esp)
     }
 
   /* Set up stack. */
-  if (!setup_stack (esp))
+  if (!setup_stack (esp, saveptr, file_name))
     goto done;
 
   /* Start address. */
   *eip = (void (*) (void)) ehdr.e_entry;
 
-  /* MODIFICATIONS */
-  /* argv content */
-  for (i = argc - 1; i >= 0; i--) 
-    {
-      *esp -= (strlen (argv[i]) + 1);
-      memcpy (*esp, argv[i], strlen (argv[i]) + 1);
-      addresses[i] = *esp;
-    }
-
-
-  /* word align */
-  while ( ((long) *esp) % 4 != 0) 
-    {
-      *esp -= 1;
-      memset (*esp, 0, 1);
-    }
-
-  /* argv */
-  *esp -= sizeof (addresses[0]) * (argc + 1);
-  memcpy (*esp, &addresses[0], sizeof (addresses[0]) * (argc + 1));
-
-  /* argv address */
-  memcpy (*esp - 4, esp, 4);
-  *esp -= 4;
-
-  /* argc */
-  *esp -= 4;
-  memcpy (*esp, &argc, 4);
-
-  /* return address */
-  *esp -= 4;
-  memset (*esp, 0, 4);
-/* END MODIFICATIONS */
   success = true;
 
  done:
@@ -489,21 +433,87 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 /* Create a minimal stack by mapping a zeroed page at the top of
    user virtual memory. */
 static bool
-setup_stack (void **esp) 
+setup_stack (void **esp, char **saveptr, const char *filename) 
 {
   uint8_t *kpage;
   bool success = false;
 
   kpage = palloc_get_page (PAL_USER | PAL_ZERO);
-  if (kpage != NULL) 
-    {
+  
+  if (kpage != NULL){
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
-      if (success)
-        *esp = PHYS_BASE;
-      else
-        palloc_free_page (kpage);
-    }
-  return success;
+       *esp = PHYS_BASE;
+  }
+  else{
+       palloc_free_page (kpage);
+       return success;
+  }
+  
+  /* MODIFICATIONS */
+  const int DEFAULT_ARGV = 2;
+  char *token;
+  char **argv =  malloc(DEFAULT_ARGV * sizeof(char*));
+  
+  int i, argc = 0;
+  int arg_size = DEFAULT_ARGV;
+  
+  // command line parsing and resize to suitable size
+  
+  /**
+   * strtok_r is used because the place where the last token was found is kept 
+   * to be used in the next strtok_r call
+   */
+  for(token = (char*)filename; token != NULL; token = strtok_r(NULL, " ", saveptr)){
+  	argv[argc] = token;
+  	argc++;
+  	
+  	/**
+  	 * since number of arguments is undefined, 
+  	 * we will double the size of argv in case running out of space
+  	 */
+  	if(argc >= arg_size){
+  		arg_size *= 2;
+ 		argv = realloc(argv, arg_size * sizeof(char*));
+  	}
+  }
+  
+  // add null char at the end
+  argv[argc] = 0;
+  
+  // word align by wordsize (4 Bytes)
+  
+  /**
+   * After parsing, arguments are saved in argv in reverse order
+   * then, stack pointer is aligned by multiples of 4
+   * because pintos is implemented x64 processors, 
+   * which require memory access to be aligned on multiples of 4 Bytes.
+   * Failure to align stack pointer may cause the program to crash.
+   */
+  i = (size_t) *esp % 4;
+  if(i){
+  	*esp -= i;
+  	memcpy(*esp, &argv[argc], i);
+  }
+  
+  // push argv to stack
+  for(i = argc ; i>= 0; i--){
+  	*esp -= sizeof(char*);
+  	memcpy(*esp, &argv[i], sizeof(char*));
+  }
+  
+  token = *esp;
+   *esp -= sizeof(char**);
+   memcpy(*esp, &token, sizeof(char*)); 
+   
+   // push argc
+   *esp -= sizeof(int);
+   memcpy(*esp, &argc, sizeof(int)); 
+   
+   // free argv and cont
+   free(argv);
+   
+   /* END MODIFICATIONS */
+   return success;
 }
 
 /* Adds a mapping from user virtual address UPAGE to kernel
