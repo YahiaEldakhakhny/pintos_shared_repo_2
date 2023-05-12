@@ -463,6 +463,8 @@ setup_stack (void **esp, char **saveptr, const char *filename)
    * strtok_r is used because the place where the last token was found is kept 
    * to be used in the next strtok_r call
    */
+  // Yahia comment: Isn't it easier to just count the arguments before dividing the filename
+  // Yahia comment: Should the arguments be pushed in reverse order??
   for(token = (char*)filename; token != NULL; token = strtok_r(NULL, " ", saveptr)){
   	argv[argc] = token;
   	argc++;
@@ -489,6 +491,7 @@ setup_stack (void **esp, char **saveptr, const char *filename)
    * which require memory access to be aligned on multiples of 4 Bytes.
    * Failure to align stack pointer may cause the program to crash.
    */
+  // Yahia comment: what??
   i = (size_t) *esp % 4;
   if(i){
   	*esp -= i;
