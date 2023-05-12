@@ -50,6 +50,10 @@ process_execute (const char *file_name)
 
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
+
+  // Tahan outline: Parent wait for child to know if child creation was successful
+  // Tahan outline: If child creation is successful then block the child or edit the scheduler to make it choose the older thread in case of priority tie
+  
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
   return tid;
@@ -72,6 +76,8 @@ start_process (void *file_name_)
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
   success = load (file_name, &if_.eip, &if_.esp, &saveptr);
+
+  // Tahan outline: Push arguments to our stack
 
   /* If load failed, quit. */
   palloc_free_page (file_name);
@@ -99,6 +105,11 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
+  // Tahan outline: Make sure that child_tid is a child of the current process
+  // Tahan outline: Indicate that the parent is waiting on this child
+  // Tahan outline: Wake child process
+  // Tahan outline: Remove child from parent's list
+  // Tahan outline: Sema down parent
   return -1;
 }
 
@@ -108,6 +119,9 @@ process_exit (void)
 {
   struct thread *cur = thread_current ();
   uint32_t *pd;
+  
+  // Tahan outline: Release all resources held by me
+  // Tahan outline: Check is the parent is waiting on me if so, change the child status in parent and sema up the parent
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
@@ -321,7 +335,12 @@ load (const char *file_name, void (**eip) (void), void **esp, char **saveptr)
 
   success = true;
 
+  
  done:
+  // Tahan outline: deny file write to the executable
+  // Tahan outline: use parent-child communication link to signal child creation success or fail
+  // Tahan outline: use parent-child communication link to put the child in the parent's children list
+  
   /* We arrive here whether the load is successful or not. */
   return success;
 }
