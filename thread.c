@@ -92,7 +92,7 @@ thread_init (void)
   lock_init (&tid_lock);
   list_init (&ready_list);
   list_init (&all_list);
-
+  
   /* Set up a thread structure for the running thread. */
   initial_thread = running_thread ();
   init_thread (initial_thread, "main", PRI_DEFAULT);
@@ -199,6 +199,21 @@ thread_create (const char *name, int priority,
   sf = alloc_frame (t, sizeof *sf);
   sf->eip = switch_entry;
   sf->ebp = 0;
+
+  struct thread* initial_thread = thread_current();
+  /**Tahan Mod*/
+  list_init(&(t->open_files_list));
+  list_init(&(t->children_list));
+  t->parent_thread = init_thread;
+  t->child_creation_success = false;
+  t->child_status = 0;
+  t->waiting_on = t->tid;
+  t->fd_last = 2;
+  sema_init(&(t->sem_parent_child_synch), 1);
+  sema_init(&(t->sem_wait_on_child), 1);
+
+  /**End Tahan Mod*/
+
 
   /* Add to run queue. */
   thread_unblock (t);

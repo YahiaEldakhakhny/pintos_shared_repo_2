@@ -24,14 +24,14 @@ static thread_func start_process NO_RETURN;
 /**Modification*/
 struct open_file{
     int fd;
-    file *file_ptr;
+    struct file *file_ptr;
     struct list_elem open_files_elem;
-}
+};
 
 struct child_process{
   tid_t pid;
   struct thread* child;
-}
+};
 /**End Mod*/
 
 /* MODIFICATIONS */
