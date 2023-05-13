@@ -21,6 +21,19 @@
 
 static thread_func start_process NO_RETURN;
 
+/**Modification*/
+struct open_file{
+    int fd;
+    file *file_ptr;
+    struct list_elem open_files_elem;
+}
+
+struct child_process{
+  tid_t pid;
+  struct thread* child;
+}
+/**End Mod*/
+
 /* MODIFICATIONS */
 
 /**
@@ -31,6 +44,7 @@ static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp, char **save_ptr);
 
 /* END MODIFICATIONS */
+
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
    before process_execute() returns.  Returns the new process's
