@@ -14,4 +14,10 @@
 
 void syscall_init (void);
 
+/* MODIFICATIONS */
+
+void exit (int status);
+
+/* END MODIFICATIONS */
+
 #endif /* userprog/syscall.h */

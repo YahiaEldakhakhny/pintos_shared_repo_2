@@ -69,4 +69,16 @@ void halt(void)
 {
 	shutdown_power_off();
 }
+
+/**
+ * exit: Terminates the current userprog
+ * @status: 0 in case success
+ *         otherwise in case errors
+ */
+ void exit (int status)
+ {
+ 	thread_current()->exit_status = status;
+ 	thread_exit();
+ }
+ 
 /* END MODIFICATIONS*/

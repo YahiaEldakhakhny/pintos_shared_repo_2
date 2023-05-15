@@ -111,6 +111,13 @@ struct thread
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
+    
+    /* MODIFICATION */
+    
+    int exit_status;  /*thread exit status*/
+    
+    /* END MODIFICATION */
+    
 #endif
 
     /* Owned by thread.c. */
