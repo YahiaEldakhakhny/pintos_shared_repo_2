@@ -17,6 +17,7 @@ void syscall_init (void);
 /* MODIFICATIONS */
 
 void exit (int status);
+int wait (int pid);
 
 /* END MODIFICATIONS */
 

@@ -8,6 +8,7 @@
 
 #include "threads/vaddr.h"
 #include "devices/shutdown.h"
+#include "userprog/process.h"
 
 /* END MODIFICATIONS */
 
@@ -79,6 +80,12 @@ void halt(void)
  {
  	thread_current()->exit_status = status;
  	thread_exit();
+ }
+ 
+ /* wait */
+ int wait (int pid)
+ {
+ 	return process_wait(pid);
  }
  
 /* END MODIFICATIONS*/

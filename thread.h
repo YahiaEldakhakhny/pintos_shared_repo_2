@@ -115,6 +115,7 @@ struct thread
     /* MODIFICATION */
     
     int exit_status;  /*thread exit status*/
+    struct list_elem child_elem;
     
     /* END MODIFICATION */
     
