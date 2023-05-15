@@ -35,7 +35,7 @@ syscall_handler (struct intr_frame *f UNUSED)
 /* MODIFICATIONS */
 
 /* get_args: get arguments from the stack */
-void get_args (struct intr_frame *f, int *args, int num_of args)
+void get_args (struct intr_frame *f, int *args, int num_of_args)
 {
 	int *ptr, i;
 	
