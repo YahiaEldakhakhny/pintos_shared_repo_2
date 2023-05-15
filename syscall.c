@@ -7,15 +7,18 @@
 /* MODIFICATIONS */
 
 #include "threads/vaddr.h"
+#include "devices/shutdown.h"
 
 /* END MODIFICATIONS */
 
 static void syscall_handler (struct intr_frame *);
- 
+void is_ptr_valid (const void *vaddr);
+
 /* MODIFICATIONS */
 
 void get_args (struct intr_frame *f, int *arg, int num_of_args);
-void is_ptr_valid (const void* vaddr)
+void is_ptr_valid (const void* vaddr);
+void halt(void);
 
 /* END MODIFICATIONS */
 
@@ -48,13 +51,22 @@ void get_args (struct intr_frame *f, int *args, int num_of_args)
 }
 
 /* is_ptr_valid: checks the validity of the pointer */
-void is_ptr_valid (const void *vaddr)
+void is_ptr_valid (const void* vaddr)
 {
 	if(vaddr < USER_VIR_ADDR_BOTTOM || !is_user_vaddr(vaddr))
 	{
+		thread_exit();
 		// virtual memory address is not reserved for the user
 		// TO BE ADDED LATER : system call exit
 	}
 }
 
+/**
+ * halt : system can't continue dueto hardware or software problem 
+ * If halt occurs, system should shutdown not reboot
+*/
+void halt(void)
+{
+	shutdown_power_off();
+}
 /* END MODIFICATIONS*/
