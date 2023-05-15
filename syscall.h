@@ -8,7 +8,7 @@
  * the code segment in PINTOS starts at the user virtual address 0x08048000
  * approx. 128 MB from the bottom of the address space
  */
-#define USER_VIR_ADDR_BOTTOM ((VOID *)0x08048000)
+#define USER_VIR_ADDR_BOTTOM ((void *)0x08048000)
 
 /* END MODIFICATIONS */
 
