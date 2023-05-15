@@ -14,7 +14,7 @@ static void syscall_handler (struct intr_frame *);
  
 /* MODIFICATIONS */
 
-void get_args (struct intr_frame *f, int *arg, int num_of args);
+void get_args (struct intr_frame *f, int *arg, int num_of_args);
 void is_ptr_valid (const void* vaddr)
 
 /* END MODIFICATIONS */
