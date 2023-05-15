@@ -10,16 +10,18 @@
 #include "devices/shutdown.h"
 #include "userprog/process.h"
 
+
+/*a lock to ensure multiple processes can't edit file at the same time*/
+struct lock file_lock;
+
 /* END MODIFICATIONS */
 
 static void syscall_handler (struct intr_frame *);
-void is_ptr_valid (const void *vaddr);
 
 /* MODIFICATIONS */
 
 void get_args (struct intr_frame *f, int *arg, int num_of_args);
 void is_ptr_valid (const void* vaddr);
-void halt(void);
 
 /* END MODIFICATIONS */
 
@@ -86,6 +88,27 @@ void halt(void)
  int wait (int pid)
  {
  	return process_wait(pid);
+ }
+ 
+ 
+ int exec (const char *cmd_line)
+ {
+ 	struct thread* parent = thread_current();
+ 	
+ 	if(cmd_line == NULL)
+ 		return -1; // cannot run
+ 	
+ 	lock_acquire(&file_lock);
+ 	
+ 	/*create new process*/
+ 	int child_tid = process_execute(cmd_line);
+ 	struct thread* child = get_child(parent, child_tid);
+ 	if(!child->loaded)
+ 		child_tid = -1;
+ 	
+ 	lock_release(&file_lock);
+ 	return child_tid;
+ 	
  }
  
 /* END MODIFICATIONS*/

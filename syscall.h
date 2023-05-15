@@ -3,6 +3,7 @@
 
 /* MODIFICATIONS */
 
+
 /**
  * Acoording to Stanford documentation,
  * the code segment in PINTOS starts at the user virtual address 0x08048000
@@ -16,8 +17,10 @@ void syscall_init (void);
 
 /* MODIFICATIONS */
 
+void halt(void);
 void exit (int status);
 int wait (int pid);
+int exec (const char *cmd_line);
 
 /* END MODIFICATIONS */
 
