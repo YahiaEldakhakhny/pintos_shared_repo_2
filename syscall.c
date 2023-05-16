@@ -32,6 +32,7 @@ void
 syscall_init (void) 
 {
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
+  //Mod
   lock_init(&file_lock);
 }
 
@@ -140,7 +141,7 @@ void halt(void)
 	if(&(t->open_files_list) != NULL)
 	{
 		struct open_file *of;
-		for (struct list_elem *e = &(t->open_files_list).head; e != &(t->open_files_list).tail; e = e->next)
+		for (struct list_elem *e = &(t->open_files_list).head.next; e != &(t->open_files_list).tail; e = e->next)
   		{
 			of=list_entry(e,struct open_file,open_files_elem);
 			close(of->fd);
@@ -150,7 +151,7 @@ void halt(void)
 	if(&(t->children_list) != NULL)
 	{
 		struct thread *cp;
-		for (struct list_elem *e = &(t->children_list).head; e != &(t->children_list).tail; e = e->next)
+		for (struct list_elem *e = &(t->children_list).head.next; e != &(t->children_list).tail; e = e->next)
   		{
 			cp=list_entry(e,struct thread, child_elem);
 			wait(cp->pid);
@@ -215,7 +216,18 @@ void halt(void)
  }
  void close (int fd)
  {
-	return ;
+	struct open_file *of; 
+	struct thread * t=thread_current();
+	for (struct list_elem *e = &(t->open_files_list).head.next; e != &(t->open_files_list).tail; e = e->next)
+  	{
+		of=list_entry(e,struct open_file, open_files_elem);
+		if (of->fd == fd)
+		{
+			file_close(of->file_ptr);
+			//TO DO : Release the Lock
+			return ;
+		}
+  	}
  }
  
 /* END MODIFICATIONS*/
