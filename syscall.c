@@ -209,9 +209,6 @@ void halt(void)
  	/*create new process*/
  	int child_tid = process_execute(cmd_line);
  	struct thread* child = get_child(parent, child_tid);
- 	if(!child->t->loaded)
- 		child_tid = -1;
- 	
  	lock_release(&file_lock);
  	return child_tid;
  	

@@ -200,11 +200,11 @@ thread_create (const char *name, int priority,
   sf->eip = switch_entry;
   sf->ebp = 0;
 
-  struct thread* initial_thread = thread_current();
+  struct thread* parent_thread = thread_current();
   /**Tahan Mod*/
   list_init(&(t->open_files_list));
   list_init(&(t->children_list));
-  t->parent_thread = init_thread;
+  t->parent_thread = parent_thread;
   t->child_creation_success = false;
   t->child_status = 0;
   t->waiting_on = t->tid;
@@ -212,7 +212,7 @@ thread_create (const char *name, int priority,
   t->pid=t->tid;
   sema_init(&(t->sem_parent_child_synch), 0);
   sema_init(&(t->sem_wait_on_child), 0);
-
+  list_push_back(&parent_thread->children_list,&(t->child_elem));
   /**End Tahan Mod*/
 
 

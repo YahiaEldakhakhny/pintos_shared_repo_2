@@ -60,12 +60,13 @@ process_execute (const char *file_name)
 
   // Tahan outline: Parent wait for child to know if child creation was successful
   // Tahan outline: If child creation is successful then block the child or edit the scheduler to make it choose the older thread in case of priority tie
-  
+  struct thread *parent=thread_current();
   if (tid == TID_ERROR){
     palloc_free_page (fn_copy); 
   }
   else 
   {
+    parent->child_creation_success=true;
     // struct child_process *cp ;
     // list_push_back();
   }
