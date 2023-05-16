@@ -108,9 +108,24 @@ struct thread
     int child_status; // may not be useful
 
     /**End Tahan Mod*/
+    
+    /* MODIFICATION */
+    
+    bool loaded; // true when loading is done
+    
+    /* END MODIFICATION */
+    
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
+    
+    /* MODIFICATION */
+    
+    int exit_status;  /*thread exit status*/
+    struct list_elem child_elem;
+    
+    /* END MODIFICATION */
+    
 #endif
 
     /* Owned by thread.c. */
