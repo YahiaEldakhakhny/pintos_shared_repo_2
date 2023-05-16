@@ -9,7 +9,9 @@
 #include "threads/vaddr.h"
 #include "devices/shutdown.h"
 #include "userprog/process.h"
-
+#include "userprog/pagedir.h"
+#include "filesys/filesys.h"
+#include "filesys/file.h"
 
 /*a lock to ensure multiple processes can't edit file at the same time*/
 struct lock file_lock;
@@ -22,6 +24,7 @@ static void syscall_handler (struct intr_frame *);
 
 void get_args (struct intr_frame *f, int *arg, int num_of_args);
 void is_ptr_valid (const void* vaddr);
+int get_kernel_ptr (const void *user_ptr);
 
 /* END MODIFICATIONS */
 
@@ -34,8 +37,44 @@ syscall_init (void)
 static void
 syscall_handler (struct intr_frame *f UNUSED) 
 {
-  printf ("system call!\n");
-  thread_exit ();
+  /* MODIFICATIONS */
+  
+  /*printf ("system call!\n");
+  thread_exit ();*/
+  
+  /* up to 3 stack args are needed */
+  int args[3];
+  
+  /*Ensure provided ptr is valid*/
+  is_ptr_valid((const void *)f->esp);
+  
+  /*Make system call coording to esp*/
+  switch(*(int *) f->esp){
+  	// HALT
+  	case SYS_HALT:
+  		halt();
+  		break;
+  	
+  	// TERMINATE PROCESS
+  	case SYS_EXIT:
+  		get_args(f, &args[0], 1);
+  		exit(args[0]);
+  		break;
+  	
+  	//START ANOTHER PROCESS
+  	case SYS_EXEC:
+  		get_args(f, &args[0], 1);
+  		
+  		/*Transform arg from user vaddr. to kernel vaddr*/
+  		args[0] = get_kernel_ptr ((const void *) args[0]);
+  		f->eax = exec((const void *) args[0]);
+  		break;
+  	default:
+  		exit(-1);
+  		break;
+  }
+  
+  /* END MODIFICATIONS */
 }
 
 /* MODIFICATIONS */
@@ -62,6 +101,20 @@ void is_ptr_valid (const void* vaddr)
 		// virtual memory address is not reserved for the user
 		// TO BE ADDED LATER : system call exit
 	}
+}
+
+/*convert user ptr to kernel ptr*/
+int get_kernel_ptr (const void *user_ptr)
+{
+	is_ptr_valid(user_ptr);
+	
+	/*userptr -> kernelptr*/
+	void *kernel_ptr = pagedir_get_page(thread_current()->pagedir, user_ptr);
+	
+	// Ensure kernel is not NULL
+	if(kernel_ptr == NULL)
+		exit(-1);
+	return ((int) kernel_ptr);
 }
 
 /**
