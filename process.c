@@ -124,12 +124,12 @@ process_wait (tid_t child_tid UNUSED)
 /* MODIFICATIONS */
 
   /* Search parent list of children for child_tid */
-struct child_process* get_child (struct thread* parent, int child_pid)
+struct thread* get_child (struct thread* parent, int child_pid)
 {
 	struct list_elem* element;
 	for(element = list_front(&parent->children_list); element != NULL; element = element->next)
 	{
-		struct child_process *cp = list_entry(element, struct child_process, child_elem);
+		struct thread *cp = list_entry(element, struct thread, child_elem);
 		if(cp->pid == child_pid)
 			return cp;
 	}

@@ -104,6 +104,10 @@ struct thread
     struct file* executable_file;
     struct semaphore sem_wait_on_child;
     struct semaphore sem_parent_child_synch;
+    /*process shenanigans*/
+    int pid;
+    struct list_elem child_elem;
+    /*process shenanigans*/
     int fd_last; // may not be useful
     int child_status; // may not be useful
        /* MODIFICATION */

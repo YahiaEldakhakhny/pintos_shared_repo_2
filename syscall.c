@@ -146,14 +146,20 @@ void halt(void)
 			close(of->fd);
   		}
 	}
+	//check if there are any child processes running and wait on them
 	if(&(t->children_list) != NULL)
 	{
-		struct child_process *cp;
+		struct thread *cp;
 		for (struct list_elem *e = &(t->children_list).head; e != &(t->children_list).tail; e = e->next)
   		{
-			cp=list_entry(e,struct open_file,open_files_elem);
+			cp=list_entry(e,struct thread, child_elem);
 			wait(cp->pid);
   		}
+	}
+	//check if the child process is blocking the parent 
+	if(t->parent_thread->waiting_on==t.pid)
+	{
+		sema_up(&t->sem_wait_on_child);
 	}
  	thread_exit();
  }
@@ -164,7 +170,7 @@ void halt(void)
  /* MODIFICATIONS */
 
   struct thread *parent = thread_current(); /* current process */
-  struct child_process *child = NULL;              /* Child process */
+  struct thread *child = NULL;              /* Child process */
 
   /* Ensure there is child process needed to wait for */
   if (list_empty(&parent->children_list))
@@ -181,11 +187,11 @@ void halt(void)
   list_remove(&child->child_elem);
 
   /* Make parent wait till child finishes executing */
-  parent->waiting_on = child->t->tid;
-  sema_down(&(child->t->sem_wait_on_child));
+  parent->waiting_on = child->pid;
+  sema_down(&(child->sem_wait_on_child));
 
   /* Return exit status of child when terminated*/
-  return (child->t->exit_status);
+  return (child->exit_status);
 
   /* END MODIFICATIONS */
  }
@@ -202,7 +208,7 @@ void halt(void)
  	
  	/*create new process*/
  	int child_tid = process_execute(cmd_line);
- 	struct child_process* child = get_child(parent, child_tid);
+ 	struct thread* child = get_child(parent, child_tid);
  	if(!child->t->loaded)
  		child_tid = -1;
  	

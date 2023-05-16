@@ -209,8 +209,9 @@ thread_create (const char *name, int priority,
   t->child_status = 0;
   t->waiting_on = t->tid;
   t->fd_last = 2;
-  sema_init(&(t->sem_parent_child_synch), 1);
-  sema_init(&(t->sem_wait_on_child), 1);
+  t->pid=t->tid;
+  sema_init(&(t->sem_parent_child_synch), 0);
+  sema_init(&(t->sem_wait_on_child), 0);
 
   /**End Tahan Mod*/
 
