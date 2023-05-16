@@ -17,10 +17,20 @@
 #include "threads/palloc.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
+#include "threads/malloc.h"
 
 static thread_func start_process NO_RETURN;
-static bool load (const char *cmdline, void (**eip) (void), void **esp);
 
+/* MODIFICATIONS */
+
+/**
+ * The function was redefined to take parameter saveptr
+ * because in start_process, strtok_r placed null pointer at the first place of command
+ * This separates the filename from arguments
+ * so, saveptr: is a pointer to the start of arguments which is used in setup_stack */
+static bool load (const char *cmdline, void (**eip) (void), void **esp, char **save_ptr);
+
+/* END MODIFICATIONS */
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
    before process_execute() returns.  Returns the new process's
@@ -30,18 +40,30 @@ process_execute (const char *file_name)
 {
   char *fn_copy;
   tid_t tid;
-  
+
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
   fn_copy = palloc_get_page (0);
   if (fn_copy == NULL)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
+  
+  /* MODIFICATIONS */
+  
+  char *saveptr;
+  file_name = strtok_r((char*)file_name, " ", &saveptr);
+  
+  /* END MODIFICATIONS */
 
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
+
+  // Tahan outline: Parent wait for child to know if child creation was successful
+  // Tahan outline: If child creation is successful then block the child or edit the scheduler to make it choose the older thread in case of priority tie
+  
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
+ 
   return tid;
 }
 
@@ -59,7 +81,9 @@ start_process (void *file_name_)
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
-  success = load (file_name, &if_.eip, &if_.esp);
+  success = load (file_name, &if_.eip, &if_.esp, &saveptr);
+
+  // Tahan outline: Push arguments to our stack
 
   /* If load failed, quit. */
   palloc_free_page (file_name);
@@ -82,14 +106,62 @@ start_process (void *file_name_)
    child of the calling process, or if process_wait() has already
    been successfully called for the given TID, returns -1
    immediately, without waiting.
-
    This function will be implemented in problem 2-2.  For now, it
    does nothing. */
 int
 process_wait (tid_t child_tid UNUSED) 
 {
+  // Tahan outline: Make sure that child_tid is a child of the current process
+  // Tahan outline: Indicate that the parent is waiting on this child
+  // Tahan outline: Wake child process
+  // Tahan outline: Remove child from parent's list
+  // Tahan outline: Sema down parent
+  
+  /* MODIFICATIONS */
+  
+  struct thread* parent = thread_current(); /* current process */
+  struct thread* child = NULL; /* Child process */
+  
+  /* Ensure there is child process needed to wait for */
+  if (list_empty(&parent->children_list))
+  	return -1;
+  	
+  /* Search parent list of children for child_tid */
+  child = get_child(parent, child_tid);
+  
+  /* If child not found, return -1 */
+  if (child == NULL)
+  	return -1;
+  
+  /* Remove child for which we are waiting from the list*/
+  list_remove(&child->child_elem);
+  
+  /* Make parent wait till child finishes executing */
+  sema_down(&child->sem_wait_on_child);
+  
+  /* Return exit status of child when terminated*/
+  return (child->exit_status);
+  
+  /* END MODIFICATIONS */
   return -1;
 }
+
+/* MODIFICATIONS */
+
+  /* Search parent list of children for child_tid */
+struct thread* get_child (struct thread* parent, tid_t child_tid UNUSED)
+{
+	struct list_elem* element;
+	for(element = list_front(&parent->children_list); element != NULL; element = element->next)
+	{
+		struct thread *t = list_entry(element, struct thread, child_elem);
+		if(t->tid == child_tid)
+			return t;
+	}
+	return NULL; // not found
+}
+
+/* END MODIFICATIONS */
 
 /* Free the current process's resources. */
 void
@@ -97,6 +169,9 @@ process_exit (void)
 {
   struct thread *cur = thread_current ();
   uint32_t *pd;
+  
+  // Tahan outline: Release all resources held by me
+  // Tahan outline: Check is the parent is waiting on me if so, change the child status in parent and sema up the parent
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
@@ -195,7 +270,7 @@ struct Elf32_Phdr
 #define PF_W 2          /* Writable. */
 #define PF_R 4          /* Readable. */
 
-static bool setup_stack (void **esp);
+static bool setup_stack (void **esp, char **save_ptr, const char *filename);
 static bool validate_segment (const struct Elf32_Phdr *, struct file *);
 static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
                           uint32_t read_bytes, uint32_t zero_bytes,
@@ -206,7 +281,7 @@ static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
    and its initial stack pointer into *ESP.
    Returns true if successful, false otherwise. */
 bool
-load (const char *file_name, void (**eip) (void), void **esp) 
+load (const char *file_name, void (**eip) (void), void **esp, char **saveptr)
 {
   struct thread *t = thread_current ();
   struct Elf32_Ehdr ehdr;
@@ -217,16 +292,16 @@ load (const char *file_name, void (**eip) (void), void **esp)
 
   /* Allocate and activate page directory. */
   t->pagedir = pagedir_create ();
-  if (t->pagedir == NULL) 
+  if (t->pagedir == NULL)
     goto done;
   process_activate ();
 
   /* Open executable file. */
   file = filesys_open (file_name);
-  if (file == NULL) 
+  if (file == NULL)
     {
       printf ("load: %s: open failed\n", file_name);
-      goto done; 
+      goto done;
     }
 
   /* Read and verify executable header. */
@@ -236,15 +311,15 @@ load (const char *file_name, void (**eip) (void), void **esp)
       || ehdr.e_machine != 3
       || ehdr.e_version != 1
       || ehdr.e_phentsize != sizeof (struct Elf32_Phdr)
-      || ehdr.e_phnum > 1024) 
+      || ehdr.e_phnum > 1024)
     {
       printf ("load: %s: error loading executable\n", file_name);
-      goto done; 
+      goto done;
     }
 
   /* Read program headers. */
   file_ofs = ehdr.e_phoff;
-  for (i = 0; i < ehdr.e_phnum; i++) 
+  for (i = 0; i < ehdr.e_phnum; i++)
     {
       struct Elf32_Phdr phdr;
 
@@ -255,7 +330,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
       if (file_read (file, &phdr, sizeof phdr) != sizeof phdr)
         goto done;
       file_ofs += sizeof phdr;
-      switch (phdr.p_type) 
+      switch (phdr.p_type)
         {
         case PT_NULL:
         case PT_NOTE:
@@ -269,7 +344,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
         case PT_SHLIB:
           goto done;
         case PT_LOAD:
-          if (validate_segment (&phdr, file)) 
+          if (validate_segment (&phdr, file))
             {
               bool writable = (phdr.p_flags & PF_W) != 0;
               uint32_t file_page = phdr.p_offset & ~PGMASK;
@@ -284,7 +359,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
                   zero_bytes = (ROUND_UP (page_offset + phdr.p_memsz, PGSIZE)
                                 - read_bytes);
                 }
-              else 
+              else
                 {
                   /* Entirely zero.
                      Don't read anything from disk. */
@@ -302,7 +377,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
     }
 
   /* Set up stack. */
-  if (!setup_stack (esp))
+  if (!setup_stack (esp, saveptr, file_name))
     goto done;
 
   /* Start address. */
@@ -310,12 +385,16 @@ load (const char *file_name, void (**eip) (void), void **esp)
 
   success = true;
 
+  
  done:
+  // Tahan outline: deny file write to the executable
+  // Tahan outline: use parent-child communication link to signal child creation success or fail
+  // Tahan outline: use parent-child communication link to put the child in the parent's children list
+  
   /* We arrive here whether the load is successful or not. */
-  file_close (file);
   return success;
 }
-
+
 /* load() helpers. */
 
 static bool install_page (void *upage, void *kpage, bool writable);
@@ -368,15 +447,11 @@ validate_segment (const struct Elf32_Phdr *phdr, struct file *file)
 /* Loads a segment starting at offset OFS in FILE at address
    UPAGE.  In total, READ_BYTES + ZERO_BYTES bytes of virtual
    memory are initialized, as follows:
-
         - READ_BYTES bytes at UPAGE must be read from FILE
           starting at offset OFS.
-
         - ZERO_BYTES bytes at UPAGE + READ_BYTES must be zeroed.
-
    The pages initialized by this function must be writable by the
    user process if WRITABLE is true, read-only otherwise.
-
    Return true if successful, false if a memory allocation error
    or disk read error occurs. */
 static bool
@@ -427,21 +502,90 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 /* Create a minimal stack by mapping a zeroed page at the top of
    user virtual memory. */
 static bool
-setup_stack (void **esp) 
+setup_stack (void **esp, char **saveptr, const char *filename) 
 {
   uint8_t *kpage;
   bool success = false;
 
   kpage = palloc_get_page (PAL_USER | PAL_ZERO);
-  if (kpage != NULL) 
-    {
+  
+  if (kpage != NULL){
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
-      if (success)
-        *esp = PHYS_BASE;
-      else
-        palloc_free_page (kpage);
-    }
-  return success;
+       *esp = PHYS_BASE;
+  }
+  else{
+       palloc_free_page (kpage);
+       return success;
+  }
+  
+  /* MODIFICATIONS */
+  const int DEFAULT_ARGV = 2;
+  char *token;
+  char **argv =  malloc(DEFAULT_ARGV * sizeof(char*));
+  
+  int i, argc = 0;
+  int arg_size = DEFAULT_ARGV;
+  
+  // command line parsing and resize to suitable size
+  
+  /**
+   * strtok_r is used because the place where the last token was found is kept 
+   * to be used in the next strtok_r call
+   */
+  // Yahia comment: Isn't it easier to just count the arguments before dividing the filename
+  // Yahia comment: Should the arguments be pushed in reverse order??
+  for(token = (char*)filename; token != NULL; token = strtok_r(NULL, " ", saveptr)){
+  	argv[argc] = token;
+  	argc++;
+  	
+  	/**
+  	 * since number of arguments is undefined, 
+  	 * we will double the size of argv in case running out of space
+  	 */
+  	if(argc >= arg_size){
+  		arg_size *= 2;
+ 		argv = realloc(argv, arg_size * sizeof(char*));
+  	}
+  }
+  
+  // add null char at the end
+  argv[argc] = 0;
+  
+  // word align by wordsize (4 Bytes)
+  
+  /**
+   * After parsing, arguments are saved in argv in reverse order
+   * then, stack pointer is aligned by multiples of 4
+   * because pintos is implemented x64 processors, 
+   * which require memory access to be aligned on multiples of 4 Bytes.
+   * Failure to align stack pointer may cause the program to crash.
+   */
+  // Yahia comment: what??
+  i = (size_t) *esp % 4;
+  if(i){
+  	*esp -= i;
+  	memcpy(*esp, &argv[argc], i);
+  }
+  
+  // push argv to stack
+  for(i = argc ; i>= 0; i--){
+  	*esp -= sizeof(char*);
+  	memcpy(*esp, &argv[i], sizeof(char*));
+  }
+  
+  token = *esp;
+   *esp -= sizeof(char**);
+   memcpy(*esp, &token, sizeof(char*)); 
+   
+   // push argc
+   *esp -= sizeof(int);
+   memcpy(*esp, &argc, sizeof(int)); 
+   
+   // free argv and cont
+   free(argv);
+   
+   /* END MODIFICATIONS */
+   return success;
 }
 
 /* Adds a mapping from user virtual address UPAGE to kernel
