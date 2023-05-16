@@ -106,7 +106,12 @@ struct thread
     struct semaphore sem_parent_child_synch;
     int fd_last; // may not be useful
     int child_status; // may not be useful
-   
+       /* MODIFICATION */
+    
+    int exit_status;  /*thread exit status*/
+    struct list_elem child_elem;
+    
+    /* END MODIFICATION */
     /**End Tahan Mod*/
     
     /* MODIFICATION */
@@ -119,12 +124,7 @@ struct thread
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
     
-    /* MODIFICATION */
-    
-    int exit_status;  /*thread exit status*/
-    struct list_elem child_elem;
-    
-    /* END MODIFICATION */
+
     
 #endif
 

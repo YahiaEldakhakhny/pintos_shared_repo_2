@@ -160,7 +160,33 @@ void halt(void)
  /* wait */
  int wait (int pid)
  {
- 	return process_wait(pid);
+ /* MODIFICATIONS */
+
+  struct thread *parent = thread_current(); /* current process */
+  struct child_process *child = NULL;              /* Child process */
+
+  /* Ensure there is child process needed to wait for */
+  if (list_empty(&parent->children_list))
+    return -1;
+
+  /* Search parent list of children for child_tid */
+  child = get_child(parent, pid);
+
+  /* If child not found, return -1 */
+  if (child == NULL)
+    return -1;
+
+  /* Remove child for which we are waiting from the list*/
+  list_remove(&child->child_elem);
+
+  /* Make parent wait till child finishes executing */
+  parent->waiting_on = child->t->tid;
+  sema_down(&(child->t->sem_wait_on_child));
+
+  /* Return exit status of child when terminated*/
+  return (child->t->exit_status);
+
+  /* END MODIFICATIONS */
  }
  
  

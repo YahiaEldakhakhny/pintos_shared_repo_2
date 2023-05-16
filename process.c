@@ -113,52 +113,20 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
-  // Tahan outline: Make sure that child_tid is a child of the current process
-  // Tahan outline: Indicate that the parent is waiting on this child
-  // Tahan outline: Wake child process
-  // Tahan outline: Remove child from parent's list
-  // Tahan outline: Sema down parent
-  
-  /* MODIFICATIONS */
-  
-  struct thread* parent = thread_current(); /* current process */
-  struct thread* child = NULL; /* Child process */
-  
-  /* Ensure there is child process needed to wait for */
-  if (list_empty(&parent->children_list))
-  	return -1;
-  	
-  /* Search parent list of children for child_tid */
-  child = get_child(parent, child_tid);
-  
-  /* If child not found, return -1 */
-  if (child == NULL)
-  	return -1;
-  
-  /* Remove child for which we are waiting from the list*/
-  list_remove(&child->child_elem);
-  
-  /* Make parent wait till child finishes executing */
-  sema_down(&child->sem_wait_on_child);
-  
-  /* Return exit status of child when terminated*/
-  return (child->exit_status);
-  
-  /* END MODIFICATIONS */
   return -1;
 }
 
 /* MODIFICATIONS */
 
   /* Search parent list of children for child_tid */
-struct thread* get_child (struct thread* parent, tid_t child_tid UNUSED)
+struct child_process* get_child (struct thread* parent, int child_pid)
 {
 	struct list_elem* element;
 	for(element = list_front(&parent->children_list); element != NULL; element = element->next)
 	{
-		struct thread *t = list_entry(element, struct thread, child_elem);
-		if(t->tid == child_tid)
-			return t;
+		struct child_process *cp = list_entry(element, struct child_process, child_elem);
+		if(cp->pid == child_pid)
+			return cp;
 	}
 	return NULL; // not found
 }
