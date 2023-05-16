@@ -145,6 +145,15 @@ void halt(void)
 			close(of->fd);
   		}
 	}
+	if(&(t->children_list) != NULL)
+	{
+		struct child_process *cp;
+		for (struct list_elem *e = &(t->children_list).head; e != &(t->children_list).tail; e = e->next)
+  		{
+			cp=list_entry(e,struct open_file,open_files_elem);
+			wait(cp->pid);
+  		}
+	}
  	thread_exit();
  }
  
