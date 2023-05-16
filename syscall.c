@@ -32,6 +32,7 @@ void
 syscall_init (void) 
 {
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
+  lock_init(&file_lock);
 }
 
 static void
@@ -201,8 +202,8 @@ void halt(void)
  	
  	/*create new process*/
  	int child_tid = process_execute(cmd_line);
- 	struct thread* child = get_child(parent, child_tid);
- 	if(!child->loaded)
+ 	struct child_process* child = get_child(parent, child_tid);
+ 	if(!child->t->loaded)
  		child_tid = -1;
  	
  	lock_release(&file_lock);
