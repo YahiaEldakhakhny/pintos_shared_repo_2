@@ -138,10 +138,12 @@ void halt(void)
 	//closing opened files
 	if(&(t->open_files_list) != NULL)
 	{
-		for (struct list_elem *e = &list->head; e != &list->tail; e = e->next)
-  			{
-
-  			}
+		struct open_file *of;
+		for (struct list_elem *e = &(t->open_files_list).head; e != &(t->open_files_list).tail; e = e->next)
+  		{
+			of=list_entry(e,struct open_file,open_files_elem);
+			close(of->fd);
+  		}
 	}
  	thread_exit();
  }
@@ -171,6 +173,10 @@ void halt(void)
  	lock_release(&file_lock);
  	return child_tid;
  	
+ }
+ void close (int fd)
+ {
+	return ;
  }
  
 /* END MODIFICATIONS*/

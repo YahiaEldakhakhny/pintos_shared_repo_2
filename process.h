@@ -18,6 +18,7 @@ void process_activate (void);
 /* MODIFICATIONS */
 
 struct thread* get_child(struct thread* t, tid_t child_tid UNUSED);
+
 struct open_file{
     int fd;
     struct file *file_ptr;
