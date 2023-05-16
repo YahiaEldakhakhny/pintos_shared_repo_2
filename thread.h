@@ -113,7 +113,6 @@ struct thread
        /* MODIFICATION */
     
     int exit_status;  /*thread exit status*/
-    struct list_elem child_elem;
     
     /* END MODIFICATION */
     /**End Tahan Mod*/
@@ -163,7 +162,7 @@ void thread_yield (void);
 /* Performs some operation on thread t, given auxiliary data AUX. */
 typedef void thread_action_func (struct thread *t, void *aux);
 void thread_foreach (thread_action_func *, void *);
-
+struct thread *thread_get_by_id (tid_t id);
 int thread_get_priority (void);
 void thread_set_priority (int);
 

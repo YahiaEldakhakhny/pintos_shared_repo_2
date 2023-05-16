@@ -67,6 +67,8 @@ process_execute (const char *file_name)
   else 
   {
     parent->child_creation_success=true;
+    struct thread *child=thread_get_by_id(tid);
+    list_push_front(&(parent->children_list),&(child->child_elem));
     // struct child_process *cp ;
     // list_push_back();
   }

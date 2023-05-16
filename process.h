@@ -10,7 +10,7 @@ void process_activate (void);
 
 /* MODIFICATIONS */
 
-struct child_process* get_child(struct thread* t, int child_tid);
+struct thread* get_child(struct thread* t, int child_pid);
 /**********************************/
 struct open_file{
     int fd;

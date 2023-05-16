@@ -157,7 +157,7 @@ void halt(void)
   		}
 	}
 	//check if the child process is blocking the parent 
-	if(t->parent_thread->waiting_on==t.pid)
+	if(t->parent_thread->waiting_on==t->pid)
 	{
 		sema_up(&t->sem_wait_on_child);
 	}
