@@ -106,7 +106,7 @@ struct thread
     struct semaphore sem_parent_child_synch;
     int fd_last; // may not be useful
     int child_status; // may not be useful
-
+   
     /**End Tahan Mod*/
     
     /* MODIFICATION */

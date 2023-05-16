@@ -35,7 +35,7 @@ syscall_init (void)
 }
 
 static void
-syscall_handler (struct intr_frame *f UNUSED) 
+syscall_handler (struct intr_frame *f) 
 {
   /* MODIFICATIONS */
   
@@ -133,7 +133,16 @@ void halt(void)
  */
  void exit (int status)
  {
- 	thread_current()->exit_status = status;
+	struct thread *t=thread_current();
+ 	t->exit_status = status;
+	//closing opened files
+	if(&(t->open_files_list) != NULL)
+	{
+		for (struct list_elem *e = &list->head; e != &list->tail; e = e->next)
+  			{
+
+  			}
+	}
  	thread_exit();
  }
  
