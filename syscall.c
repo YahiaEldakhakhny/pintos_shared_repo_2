@@ -71,7 +71,36 @@ syscall_handler (struct intr_frame *f)
   		args[0] = get_kernel_ptr ((const void *) args[0]);
   		f->eax = exec((const void *) args[0]);
   		break;
-  	default:
+  	/**MODIFICATIONS*/
+	case SYS_CREATE:
+        f->eax = create ((char *) *(esp + 1), *(esp + 2));
+        break;
+    case SYS_REMOVE:
+        f->eax = remove ((char *) *(esp + 1));
+        break;
+    case SYS_OPEN:
+        f->eax = open ((char *) *(esp + 1));
+        break;
+    case SYS_FILESIZE:
+	    f->eax = filesize (*(esp + 1));
+	    break;
+    case SYS_READ:
+        f->eax = read (*(esp + 1), (void *) *(esp + 2), *(esp + 3));
+        break;
+    case SYS_WRITE:
+        f->eax = write (*(esp + 1), (void *) *(esp + 2), *(esp + 3));
+        break;
+    case SYS_SEEK:
+        seek (*(esp + 1), *(esp + 2));
+        break;
+    case SYS_TELL:
+        f->eax = tell (*(esp + 1));
+        break;
+    case SYS_CLOSE:
+        close (*(esp + 1));
+        break;
+		/***/
+	default:
   		exit(-1);
   		break;
   }
@@ -212,8 +241,8 @@ void halt(void)
  	struct thread* child = get_child(parent, child_tid);
  	lock_release(&file_lock);
  	return child_tid;
- 	
  }
+ 
  void close (int fd)
  {
 	struct open_file *of; 
@@ -225,9 +254,109 @@ void halt(void)
 		{
 			file_close(of->file_ptr);
 			//TO DO : Release the Lock
-			return ;
+			return;
 		}
   	}
  }
  
+ /**MODIFICATIONS*/
+int
+open (const char *file_name)
+{
+  struct open_file *of; 
+  struct thread * t=thread_current();
+  int file_fd = -1;
+  // Maybe check if file_name is a valid pointer...?
+  //lock_acquire();
+  of = filesys_open (file_name); // this function takes a file name and returns struct file (see filesys.c)
+  if (of != NULL)
+    {
+      list_push_back (&(t->open_files_list), &(t->open_files_elem));
+	  // TODO: update t->fd_last
+      // should do sth with file_fd and probably store it
+	  // I just don't know how
+    }
+	
+  //lock_release(); 
+  return file_fd;
+}
+ 
+int
+filesize (int fd)
+{
+	struct open_file *of; 
+	struct thread *t = thread_current();
+	int file_size = -1;
+	//lock_acquire();
+	for (struct list_elem *e = &(t->open_files_list).head.next; e != &(t->open_files_list).tail; e = e->next)
+  	{
+		of=list_entry(e,struct open_file, open_files_elem);
+		if (of->fd == fd)
+		{
+			file_size = file_length (of->file_ptr);
+		}
+  	}
+	//lock_release();
+	return file_size;
+}
+
+bool
+create (const char *file_name, unsigned size)
+{
+  bool is_file_creation_successful;
+  // Maybe check if file_name is a valid pointer...?
+  //lock_acquire();
+  is_file_creation_successful = filesys_create(file_name, size); //(see filesys.c)
+  //lock_release();
+  return is_file_creation_successful;
+}
+
+bool 
+remove (const char *file_name)
+{
+  bool is_file_creation_successful;
+  // Maybe check if file_name is a valid pointer...?
+  //lock_acquire();
+  is_file_creation_successful = filesys_remove(file_name); //(see filesys.c)
+  //lock_release();
+  return is_file_creation_successful;
+}
+
+void 
+seek (int fd, unsigned position)
+{
+  struct open_file *of; 
+  struct thread *t = thread_current();
+  //lock_acquire();
+  for (struct list_elem *e = &(t->open_files_list).head.next; e != &(t->open_files_list).tail; e = e->next)
+  	{
+		of=list_entry(e,struct open_file, open_files_elem);
+		if (of->fd == fd)
+		{
+			file_seek(of->file_ptr, position); // see file.c
+		}
+  	}
+  //lock_release();
+}
+
+unsigned 
+tell (int fd)
+{
+  struct open_file *of; 
+  struct thread *t = thread_current();
+  int position_in_file = 0;
+  //lock_acquire();
+  for (struct list_elem *e = &(t->open_files_list).head.next; e != &(t->open_files_list).tail; e = e->next)
+  	{
+		of=list_entry(e,struct open_file, open_files_elem);
+		if (of->fd == fd)
+		{
+			position_in_file = file_tell(of->file_ptr); // see file.c
+		}
+  	}
+  //lock_release();
+  return position_in_file;
+}
+/***/
+
 /* END MODIFICATIONS*/
