@@ -497,33 +497,27 @@ setup_stack (void **esp, char **saveptr, const char *filename)
   }
   
   /* MODIFICATIONS */
-  const int DEFAULT_ARGV = 2;
-  char *token;
-  char **argv =  malloc(DEFAULT_ARGV * sizeof(char*));
   
   int i, argc = 0;
-  int arg_size = DEFAULT_ARGV;
+  char *token;
   
-  // command line parsing and resize to suitable size
+    /*Get number of arguments enetered*/
+  token = (char*)filename;
+  while(token != NULL){
+  	argc++;
+  	token = strtok_r(NULL, " ", saveptr);
+  }
   
+  char **argv = malloc(argc* sizeof(char*) + 1);
+  argc = 0;
+
   /**
    * strtok_r is used because the place where the last token was found is kept 
    * to be used in the next strtok_r call
    */
-  // Yahia comment: Isn't it easier to just count the arguments before dividing the filename
-  // Yahia comment: Should the arguments be pushed in reverse order??
   for(token = (char*)filename; token != NULL; token = strtok_r(NULL, " ", saveptr)){
   	argv[argc] = token;
   	argc++;
-  	
-  	/**
-  	 * since number of arguments is undefined, 
-  	 * we will double the size of argv in case running out of space
-  	 */
-  	if(argc >= arg_size){
-  		arg_size *= 2;
- 		argv = realloc(argv, arg_size * sizeof(char*));
-  	}
   }
   
   // add null char at the end
@@ -538,7 +532,6 @@ setup_stack (void **esp, char **saveptr, const char *filename)
    * which require memory access to be aligned on multiples of 4 Bytes.
    * Failure to align stack pointer may cause the program to crash.
    */
-  // Yahia comment: what??
   i = (size_t) *esp % 4;
   if(i){
   	*esp -= i;
