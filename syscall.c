@@ -71,7 +71,7 @@ syscall_handler (struct intr_frame *f)
   		args[0] = get_kernel_ptr ((const void *) args[0]);
   		f->eax = exec((const void *) args[0]);
   		break;
-  	/**MODIFICATIONS*/
+  	/**MODIFICATIONS
 	case SYS_CREATE:
         f->eax = create ((char *) *(esp + 1), *(esp + 2));
         break;
@@ -99,7 +99,7 @@ syscall_handler (struct intr_frame *f)
     case SYS_CLOSE:
         close (*(esp + 1));
         break;
-		/***/
+		*/
 	default:
   		exit(-1);
   		break;
