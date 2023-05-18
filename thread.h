@@ -110,6 +110,9 @@ struct thread
     /*process shenanigans*/
     int fd_last; // may not be useful
     int child_status; // may not be useful
+  /**MODIFICATION*/
+    struct list_elem open_files_elem; // added this nibba since I can't find it + it raised an error
+  /***/
        /* MODIFICATION */
     
     int exit_status;  /*thread exit status*/
