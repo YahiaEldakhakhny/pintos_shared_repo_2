@@ -280,23 +280,24 @@ open (const char *file_name)
 	}
   return (of->fd);
 }
- 
+
 int
 filesize (int fd)
 {
 	struct open_file *of; 
 	struct thread *t = thread_current();
 	int file_size = -1;
-	//lock_acquire();
+	lock_acquire(&file_lock);
 	for (struct list_elem *e = &(t->open_files_list).head.next; e != &(t->open_files_list).tail; e = e->next)
   	{
 		of=list_entry(e,struct open_file, open_files_elem);
 		if (of->fd == fd)
 		{
 			file_size = file_length (of->file_ptr);
+			break;
 		}
   	}
-	//lock_release();
+	lock_release(&file_lock);
 	return file_size;
 }
 
