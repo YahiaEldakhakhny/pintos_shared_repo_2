@@ -22,9 +22,9 @@ static void syscall_handler (struct intr_frame *);
 
 /* MODIFICATIONS */
 
-void get_args (struct intr_frame *f, int *arg, int num_of_args);
-void is_ptr_valid (const void* vaddr);
-int get_kernel_ptr (const void *user_ptr);
+void get_args (struct intr_frame *f, void **arg, int num_of_args);
+void is_ptr_valid (void* vaddr);
+void *get_kernel_ptr (void *user_ptr);
 
 /* END MODIFICATIONS */
 
@@ -41,14 +41,11 @@ syscall_handler (struct intr_frame *f)
 {
   /* MODIFICATIONS */
   
-  /*printf ("system call!\n");
-  thread_exit ();*/
-  
   /* up to 3 stack args are needed */
-  int args[3];
+  void *args[3];
   
   /*Ensure provided ptr is valid*/
-  is_ptr_valid((const void *)f->esp);
+  is_ptr_valid((void *)f->esp);
   
   /*Make system call coording to esp*/
   switch(*(int *) f->esp){
@@ -59,8 +56,8 @@ syscall_handler (struct intr_frame *f)
   	
   	// TERMINATE PROCESS
   	case SYS_EXIT:
-  		get_args(f, &args[0], 1);
-  		exit(args[0]);
+  		get_args(f, &args[0], 1); 
+  		exit(*((int*)args[0]));
   		break;
   	
   	//START ANOTHER PROCESS
@@ -68,38 +65,52 @@ syscall_handler (struct intr_frame *f)
   		get_args(f, &args[0], 1);
   		
   		/*Transform arg from user vaddr. to kernel vaddr*/
-  		args[0] = get_kernel_ptr ((const void *) args[0]);
-  		f->eax = exec((const void *) args[0]);
+  		args[0] = get_kernel_ptr (args[0]);
+  		f->eax = exec((char *)args[0]);
   		break;
-  	/**MODIFICATIONS
-	case SYS_CREATE:
-        f->eax = create ((char *) *(esp + 1), *(esp + 2));
+  	/**MODIFICATIONS*/
+	case SYS_CREATE: // bool create (const char *file, unsigned initial_size);
+		get_args(f, &args[0], 2);
+		args[0] = get_kernel_ptr (args[0]);
+        f->eax = create ((const char *)args[0], *((int*)args[1]));
         break;
-    case SYS_REMOVE:
-        f->eax = remove ((char *) *(esp + 1));
+    case SYS_REMOVE: // bool remove (const char *file);
+		get_args(f, &args[0], 1);
+		args[0] = get_kernel_ptr (args[0]);
+        f->eax = remove ((const char *)args[0]);
         break;
-    case SYS_OPEN:
-        f->eax = open ((char *) *(esp + 1));
+    case SYS_OPEN: // int open (const char *file);
+		get_args(f, &args[0], 1);
+		args[0] = get_kernel_ptr (args[0]);
+        f->eax = open ((const char *)args[0]);
         break;
-    case SYS_FILESIZE:
-	    f->eax = filesize (*(esp + 1));
+    case SYS_FILESIZE: // int filesize (int fd);
+		get_args(f, &args[0], 1);
+	    f->eax = filesize (*((int*)args[0]));
 	    break;
-    case SYS_READ:
-        f->eax = read (*(esp + 1), (void *) *(esp + 2), *(esp + 3));
+    case SYS_READ: // int read (int fd, void *buffer, unsigned length);
+		get_args(f, &args[0], 3);
+		args[1] = get_kernel_ptr (args[1]);
+        f->eax = read (*((int*)args[0]), args[1], *((unsigned*)args[2]));
         break;
-    case SYS_WRITE:
-        f->eax = write (*(esp + 1), (void *) *(esp + 2), *(esp + 3));
+    case SYS_WRITE: // int write (int fd, const void *buffer, unsigned length);
+        get_args(f, &args[0], 3);
+		args[1] = get_kernel_ptr (args[1]);
+		f->eax = write (*((int*)args[0]), args[1], *((unsigned*)args[2]));
         break;
-    case SYS_SEEK:
-        seek (*(esp + 1), *(esp + 2));
+    case SYS_SEEK: // void seek (int fd, unsigned position);
+        get_args(f, &args[0], 2);
+		seek (*((int*)args[0]), *((unsigned*)args[1]));
         break;
-    case SYS_TELL:
-        f->eax = tell (*(esp + 1));
+    case SYS_TELL: // unsigned tell (int fd);
+		get_args(f, &args[0], 1);
+        f->eax = tell (*((int*)args[0]));
         break;
-    case SYS_CLOSE:
-        close (*(esp + 1));
+    case SYS_CLOSE: // void close (int fd);
+		get_args(f, &args[0], 1);
+        close (*((int*)args[0]));
         break;
-		*/
+		/***/
 	default:
   		exit(-1);
   		break;
@@ -131,31 +142,23 @@ struct file* get_file_by_fd(int target_fd)
 /**End Mod*/
 
 /* get_args: get arguments from the stack */
-void get_args (struct intr_frame *f, int *args, int num_of_args)
+void get_args (struct intr_frame *f, void **args, int num_of_args)
 {
-	int *ptr, i;
+	void *ptr;
+	int i;
 	
 	for (i = 0; i < num_of_args; i++)
 	{
-		ptr = (int *) f->esp + i + 1;
-		is_ptr_valid ((const void *) ptr);
-		args[i] = *ptr;
+		// +1 ignores the first element in stack (the one used for switching between syscalls)?!
+		ptr = (void *)((f->esp) + i + 1); 
+		is_ptr_valid (ptr);
+		args[i] = ptr; 
 	}
 }
 
-/* is_ptr_valid: checks the validity of the pointer */
-void is_ptr_valid (const void* vaddr)
-{
-	if(vaddr < USER_VIR_ADDR_BOTTOM || !is_user_vaddr(vaddr))
-	{
-		thread_exit();
-		// virtual memory address is not reserved for the user
-		// TO BE ADDED LATER : system call exit
-	}
-}
-
-/*convert user ptr to kernel ptr*/
-int get_kernel_ptr (const void *user_ptr)
+ /*convert user ptr to kernel ptr*/
+void 
+*get_kernel_ptr (void *user_ptr)
 {
 	is_ptr_valid(user_ptr);
 	
@@ -165,7 +168,35 @@ int get_kernel_ptr (const void *user_ptr)
 	// Ensure kernel is not NULL
 	if(kernel_ptr == NULL)
 		exit(-1);
-	return ((int) kernel_ptr);
+	return kernel_ptr;
+}
+
+ int exec (const char *cmd_line)
+ {
+ 	struct thread* parent = thread_current();
+ 	(parent->child_creation_success) = false;
+	
+ 	if(cmd_line == NULL)
+ 		return -2; // cannot run
+ 	
+ 	/*create new process*/
+ 	int child_tid = process_execute(cmd_line);
+	if (child_tid != TID_ERROR)
+	{
+		(parent->child_creation_success) = true;
+	}
+ 	return child_tid;
+ }
+
+/* is_ptr_valid: checks the validity of the pointer */
+void is_ptr_valid (void* vaddr)
+{
+	if(vaddr < USER_VIR_ADDR_BOTTOM || !is_user_vaddr(vaddr))
+	{
+		thread_exit();
+		// virtual memory address is not reserved for the user
+		// TO BE ADDED LATER : system call exit
+	}
 }
 
 /**
@@ -245,24 +276,6 @@ void halt(void)
   return (child->exit_status);
 
   /* END MODIFICATIONS */
- }
- 
- 
- int exec (const char *cmd_line)
- {
- 	struct thread* parent = thread_current();
- 	(parent->child_creation_success) = false;
-	
- 	if(cmd_line == NULL)
- 		return -2; // cannot run
- 	
- 	/*create new process*/
- 	int child_tid = process_execute(cmd_line);
-	if (child_tid != TID_ERROR)
-	{
-		(parent->child_creation_success) = true;
-	}
- 	return child_tid;
  }
  
  void close (int fd)
