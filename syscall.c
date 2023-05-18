@@ -328,7 +328,7 @@ seek (int fd, unsigned position)
 {
   struct open_file *of; 
   struct thread *t = thread_current();
-  //lock_acquire();
+  lock_acquire(&file_lock);
   for (struct list_elem *e = &(t->open_files_list).head.next; e != &(t->open_files_list).tail; e = e->next)
   	{
 		of=list_entry(e,struct open_file, open_files_elem);
@@ -337,7 +337,7 @@ seek (int fd, unsigned position)
 			file_seek(of->file_ptr, position); // see file.c
 		}
   	}
-  //lock_release();
+  lock_release(&file_lock);
 }
 
 unsigned 
