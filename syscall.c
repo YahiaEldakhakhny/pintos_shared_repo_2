@@ -18,15 +18,26 @@ struct lock file_lock;
 
 /* END MODIFICATIONS */
 
+/**Modifications*/
+struct file* get_file_by_fd(int target_fd)
+{
+	struct thread *t = thread_current();
+	struct open_file *of;
+	/*loop over all files opened by this process and search for the fd*/
+	for(struct list_elem *e = list_begin(&(t->open_files_list)); 
+	e != &((t->open_files_list).tail);
+	e = e->next)
+	{
+		of = list_entry(e, struct open_file, open_files_elem);
+		if(of->fd == target_fd)
+		{
+			return of->file_ptr;
+		}
+	}
+	return NULL;
+}
+/**End Mod*/
 static void syscall_handler (struct intr_frame *);
-
-/* MODIFICATIONS */
-
-void get_args (struct intr_frame *f, int *arg, int num_of_args);
-void is_ptr_valid (const void* vaddr);
-int get_kernel_ptr (const void *user_ptr);
-
-/* END MODIFICATIONS */
 
 void
 syscall_init (void) 
@@ -141,7 +152,7 @@ void halt(void)
 	if(&(t->open_files_list) != NULL)
 	{
 		struct open_file *of;
-		for (struct list_elem *e = &(t->open_files_list).head.next; e != &(t->open_files_list).tail; e = e->next)
+		for (struct list_elem *e = &(t->open_files_list)->head.next; e != &(t->open_files_list).tail; e = e->next)
   		{
 			of=list_entry(e,struct open_file,open_files_elem);
 			close(of->fd);
@@ -214,6 +225,7 @@ void halt(void)
  	return child_tid;
  	
  }
+ 
  void close (int fd)
  {
 	struct open_file *of; 
@@ -230,4 +242,12 @@ void halt(void)
   	}
  }
  
+int read (int fd, void *buffer, unsigned length)
+{
+	struct file* file_ptr = get_file_by_fd(fd);
+	return file_read(file_ptr, buffer, (off_t)length);
+}
+
+
+
 /* END MODIFICATIONS*/

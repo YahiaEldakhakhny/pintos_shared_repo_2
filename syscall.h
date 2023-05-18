@@ -16,7 +16,7 @@
 void syscall_init (void);
 
 /* MODIFICATIONS */
-
+/*Syscalls*/
 void halt(void);
 void exit (int status);
 int wait (int pid);
@@ -30,6 +30,18 @@ int write (int fd, const void *buffer, unsigned length);
 void seek (int fd, unsigned position);
 unsigned tell (int fd);
 void close (int fd);
+
+
+/* MODIFICATIONS */
+/*Aux Functions*/
+void get_args (struct intr_frame *f, int *arg, int num_of_args);
+void is_ptr_valid (const void* vaddr);
+int get_kernel_ptr (const void *user_ptr);
+
+/* Gets a pointer to a file using its file descriptor*/
+struct file* get_file_by_fd(int fd);
+/* END MODIFICATIONS */
+
 /* END MODIFICATIONS */
 
 #endif /* userprog/syscall.h */
