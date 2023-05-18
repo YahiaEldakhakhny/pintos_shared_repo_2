@@ -379,14 +379,22 @@ int
 read (int fd, void *buffer, unsigned length)
 {
 	struct file* file_ptr = get_file_by_fd(fd);
-	return file_read(file_ptr, buffer, (off_t)length);
+	if ((file_ptr != NULL) && (buffer != NULL))
+	{
+		return file_read(file_ptr, buffer, (off_t)length);
+	}
+	return -1; // in case of error
 }
 
 int 
 write (int fd, const void *buffer, unsigned length)
 {
 	struct file* file_ptr = get_file_by_fd(fd);
-	return file_write(file_ptr, buffer, (off_t)length);
+	if ((file_ptr != NULL) && (buffer != NULL))
+	{
+		return file_write(file_ptr, buffer, (off_t)length);
+	}
+	return -1; // in case of error
 }
 /***/
 
