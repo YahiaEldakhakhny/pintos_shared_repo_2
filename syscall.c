@@ -253,7 +253,7 @@ void halt(void)
 		if (of->fd == fd)
 		{
 			file_close(of->file_ptr);
-			//TO DO : Release the Lock
+			lock_release(&file_lock);
 			return;
 		}
   	}
@@ -264,21 +264,21 @@ int
 open (const char *file_name)
 {
   struct open_file *of; 
-  struct thread * t=thread_current();
-  int file_fd = -1;
+  struct thread *t = thread_current();
   // Maybe check if file_name is a valid pointer...?
-  //lock_acquire();
-  of = filesys_open (file_name); // this function takes a file name and returns struct file (see filesys.c)
+  lock_acquire(&file_lock);
+  of->file_ptr = filesys_open (file_name); // this function takes a file name and returns struct file (see filesys.c)
   if (of != NULL)
     {
-      list_push_back (&(t->open_files_list), &(t->open_files_elem));
-	  // TODO: update t->fd_last
-      // should do sth with file_fd and probably store it
-	  // I just don't know how
+		(t->fd_last)++;
+		(of->fd) = (t->fd_last);
+		list_push_back (&(t->open_files_list), &(of->open_files_elem));
     }
-	
-  //lock_release(); 
-  return file_fd;
+	else
+	{
+		lock_release(&file_lock); 
+	}
+  return (of->fd);
 }
  
 int
