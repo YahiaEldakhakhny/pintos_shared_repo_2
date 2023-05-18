@@ -315,12 +315,12 @@ create (const char *file_name, unsigned size)
 bool 
 remove (const char *file_name)
 {
-  bool is_file_creation_successful;
+  bool is_file_removal_successful;
   // Maybe check if file_name is a valid pointer...?
-  //lock_acquire();
-  is_file_creation_successful = filesys_remove(file_name); //(see filesys.c)
-  //lock_release();
-  return is_file_creation_successful;
+  lock_acquire(&file_lock);
+  is_file_removal_successful = filesys_remove(file_name); //(see filesys.c)
+  lock_release(&file_lock);
+  return is_file_removal_successful;
 }
 
 void 
