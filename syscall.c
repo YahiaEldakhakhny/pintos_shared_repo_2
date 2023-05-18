@@ -306,9 +306,9 @@ create (const char *file_name, unsigned size)
 {
   bool is_file_creation_successful;
   // Maybe check if file_name is a valid pointer...?
-  //lock_acquire();
+  lock_acquire(&file_lock);
   is_file_creation_successful = filesys_create(file_name, size); //(see filesys.c)
-  //lock_release();
+  lock_release(&file_lock);
   return is_file_creation_successful;
 }
 
