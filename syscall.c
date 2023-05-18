@@ -357,6 +357,18 @@ tell (int fd)
   //lock_release();
   return position_in_file;
 }
+
+int 
+read (int fd, void *buffer, unsigned length)
+{
+	return 0;
+}
+
+int 
+write (int fd, const void *buffer, unsigned length)
+{
+	return 0;
+}
 /***/
 
 /* END MODIFICATIONS*/
