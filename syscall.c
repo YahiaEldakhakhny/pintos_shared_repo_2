@@ -110,6 +110,26 @@ syscall_handler (struct intr_frame *f)
 
 /* MODIFICATIONS */
 
+/**Modifications*/
+struct file* get_file_by_fd(int target_fd)
+{
+	struct thread *t = thread_current();
+	struct open_file *of = NULL;
+	/*loop over all files opened by this process and search for the fd*/
+	for(struct list_elem *e = list_begin(&(t->open_files_list)); 
+	e != &((t->open_files_list).tail);
+	e = e->next)
+	{
+		of = list_entry(e, struct open_file, open_files_elem);
+		if(of->fd == target_fd)
+		{
+			return of->file_ptr;
+		}
+	}
+	return NULL;
+}
+/**End Mod*/
+
 /* get_args: get arguments from the stack */
 void get_args (struct intr_frame *f, int *args, int num_of_args)
 {
@@ -169,7 +189,7 @@ void halt(void)
 	//closing opened files
 	if(&(t->open_files_list) != NULL)
 	{
-		struct open_file *of;
+		struct open_file *of = NULL;
 		for (struct list_elem *e = &(t->open_files_list).head.next; e != &(t->open_files_list).tail; e = e->next)
   		{
 			of=list_entry(e,struct open_file,open_files_elem);
@@ -191,6 +211,7 @@ void halt(void)
 	{
 		sema_up(&t->sem_wait_on_child);
 	}
+	file_allow_write(t->executable_file);
  	thread_exit();
  }
  
@@ -230,51 +251,46 @@ void halt(void)
  int exec (const char *cmd_line)
  {
  	struct thread* parent = thread_current();
- 	
+ 	(parent->child_creation_success) = false;
+	
  	if(cmd_line == NULL)
- 		return -1; // cannot run
- 	
- 	lock_acquire(&file_lock);
+ 		return -2; // cannot run
  	
  	/*create new process*/
  	int child_tid = process_execute(cmd_line);
- 	struct thread* child = get_child(parent, child_tid);
- 	lock_release(&file_lock);
+	if (child_tid != TID_ERROR)
+	{
+		(parent->child_creation_success) = true;
+	}
  	return child_tid;
  }
  
  void close (int fd)
  {
-	struct open_file *of; 
-	struct thread * t=thread_current();
-	for (struct list_elem *e = &(t->open_files_list).head.next; e != &(t->open_files_list).tail; e = e->next)
-  	{
-		of=list_entry(e,struct open_file, open_files_elem);
-		if (of->fd == fd)
-		{
-			file_close(of->file_ptr);
-			lock_release(&file_lock);
-			return;
-		}
-  	}
+	struct open_file *of = NULL; 
+	(of->file_ptr) = get_file_by_fd(fd);
+	if ((of->file_ptr) != NULL)
+	{
+		file_close(of->file_ptr);
+		lock_release(&file_lock);
+	}
  }
  
  /**MODIFICATIONS*/
 int
 open (const char *file_name)
 {
-  struct open_file *of; 
   struct thread *t = thread_current();
-  // Maybe check if file_name is a valid pointer...?
+  struct open_file *of = NULL; 
   lock_acquire(&file_lock);
   of->file_ptr = filesys_open (file_name); // this function takes a file name and returns struct file (see filesys.c)
-  if (of != NULL)
+  if ((of->file_ptr) != NULL)
     {
 		(t->fd_last)++;
 		(of->fd) = (t->fd_last);
 		list_push_back (&(t->open_files_list), &(of->open_files_elem));
     }
-	else
+  else
 	{
 		lock_release(&file_lock); 
 	}
@@ -284,20 +300,16 @@ open (const char *file_name)
 int
 filesize (int fd)
 {
-	struct open_file *of; 
-	struct thread *t = thread_current();
+	struct open_file *of = NULL; 
 	int file_size = -1;
+	
 	lock_acquire(&file_lock);
-	for (struct list_elem *e = &(t->open_files_list).head.next; e != &(t->open_files_list).tail; e = e->next)
-  	{
-		of=list_entry(e,struct open_file, open_files_elem);
-		if (of->fd == fd)
-		{
-			file_size = file_length (of->file_ptr);
-			break;
-		}
-  	}
-	lock_release(&file_lock);
+	(of->file_ptr) = get_file_by_fd(fd);
+	if ((of->file_ptr) != NULL)
+	{
+		file_size = file_length (of->file_ptr);
+		lock_release(&file_lock);
+	}
 	return file_size;
 }
 
@@ -305,10 +317,16 @@ bool
 create (const char *file_name, unsigned size)
 {
   bool is_file_creation_successful;
-  // Maybe check if file_name is a valid pointer...?
-  lock_acquire(&file_lock);
-  is_file_creation_successful = filesys_create(file_name, size); //(see filesys.c)
-  lock_release(&file_lock);
+  if (file_name == NULL)
+  {
+	 is_file_creation_successful = false;
+  }
+  else 
+  {
+	  lock_acquire(&file_lock);
+	  is_file_creation_successful = filesys_create(file_name, size); //(see filesys.c)
+      lock_release(&file_lock);
+  }
   return is_file_creation_successful;
 }
 
@@ -316,50 +334,48 @@ bool
 remove (const char *file_name)
 {
   bool is_file_removal_successful;
-  // Maybe check if file_name is a valid pointer...?
-  lock_acquire(&file_lock);
-  is_file_removal_successful = filesys_remove(file_name); //(see filesys.c)
-  lock_release(&file_lock);
+  if (file_name == NULL)
+  {
+	  is_file_removal_successful = false;
+  }
+  else
+  {
+		lock_acquire(&file_lock);
+		is_file_removal_successful = filesys_remove(file_name); //(see filesys.c)
+		lock_release(&file_lock);
+  }  
   return is_file_removal_successful;
 }
 
 void 
 seek (int fd, unsigned position)
 {
-  struct open_file *of; 
-  struct thread *t = thread_current();
+  struct open_file *of = NULL; 
   lock_acquire(&file_lock);
-  for (struct list_elem *e = &(t->open_files_list).head.next; e != &(t->open_files_list).tail; e = e->next)
-  	{
-		of=list_entry(e,struct open_file, open_files_elem);
-		if (of->fd == fd)
-		{
-			file_seek(of->file_ptr, position); // see file.c
-		}
-  	}
+  (of->file_ptr) = get_file_by_fd(fd);
+  if ((of->file_ptr) != NULL)
+	{
+		file_seek(of->file_ptr, position); // see file.c
+	}
   lock_release(&file_lock);
 }
 
 unsigned 
 tell (int fd)
 {
-  struct open_file *of; 
-  struct thread *t = thread_current();
-  int position_in_file = 0;
-  //lock_acquire();
-  for (struct list_elem *e = &(t->open_files_list).head.next; e != &(t->open_files_list).tail; e = e->next)
-  	{
-		of=list_entry(e,struct open_file, open_files_elem);
-		if (of->fd == fd)
-		{
-			position_in_file = file_tell(of->file_ptr); // see file.c
-		}
-  	}
-  //lock_release();
+  struct open_file *of = NULL; 
+  unsigned position_in_file = -1;
+  lock_acquire(&file_lock);
+  (of->file_ptr) = get_file_by_fd(fd);
+  if ((of->file_ptr) != NULL)
+	{
+		position_in_file = file_tell(of->file_ptr); // see file.c
+	}
+  lock_release(&file_lock);
   return position_in_file;
 }
 
-int 
+/**int 
 read (int fd, void *buffer, unsigned length)
 {
 	return 0;
@@ -369,7 +385,7 @@ int
 write (int fd, const void *buffer, unsigned length)
 {
 	return 0;
-}
+}*/
 /***/
 
 /* END MODIFICATIONS*/

@@ -30,6 +30,8 @@ int write (int fd, const void *buffer, unsigned length);
 void seek (int fd, unsigned position);
 unsigned tell (int fd);
 void close (int fd);
+
+struct file* get_file_by_fd(int target_fd);
 /* END MODIFICATIONS */
 
 #endif /* userprog/syscall.h */

@@ -56,8 +56,17 @@ process_execute (const char *file_name)
   /* END MODIFICATIONS */
 
   /* Create a new thread to execute FILE_NAME. */
+  /**MODIFICATIONS*/
+  struct file *child_executable_file = filesys_open (file_name);
+  file_deny_write(child_executable_file); // deny other processes from writing while reading the file's contents
+  /***/
+  
   tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
-
+  
+  /**MODIFICATIONS*/
+  struct thread *child_thread = thread_get_by_id(tid);
+  child_thread->executable_file = child_executable_file;
+  /***/
   // Tahan outline: Parent wait for child to know if child creation was successful
   // Tahan outline: If child creation is successful then block the child or edit the scheduler to make it choose the older thread in case of priority tie
   struct thread *parent=thread_current();
@@ -297,6 +306,7 @@ load (const char *file_name, void (**eip) (void), void **esp, char **saveptr)
 
   /* Read program headers. */
   file_ofs = ehdr.e_phoff;
+
   for (i = 0; i < ehdr.e_phnum; i++)
     {
       struct Elf32_Phdr phdr;

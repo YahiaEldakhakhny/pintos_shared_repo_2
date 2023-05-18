@@ -11,6 +11,7 @@
 #include "threads/switch.h"
 #include "threads/synch.h"
 #include "threads/vaddr.h"
+#include "filesys/filesys.h"
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
@@ -206,6 +207,9 @@ tid_t thread_create(const char *name, int priority,
   t->waiting_on = t->tid;
   t->fd_last = 2;
   t->pid = t->tid;
+  /**MODIFICATION*/
+  //t->executable_file = filesys_open (name);
+  /***/
   sema_init(&(t->sem_parent_child_synch), 0);
   sema_init(&(t->sem_wait_on_child), 0);
 
