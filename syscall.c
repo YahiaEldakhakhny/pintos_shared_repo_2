@@ -375,17 +375,19 @@ tell (int fd)
   return position_in_file;
 }
 
-/**int 
+int 
 read (int fd, void *buffer, unsigned length)
 {
-	return 0;
+	struct file* file_ptr = get_file_by_fd(fd);
+	return file_read(file_ptr, buffer, (off_t)length);
 }
 
 int 
 write (int fd, const void *buffer, unsigned length)
 {
-	return 0;
-}*/
+	struct file* file_ptr = get_file_by_fd(fd);
+	return file_write(file_ptr, buffer, (off_t)length);
+}
 /***/
 
 /* END MODIFICATIONS*/
