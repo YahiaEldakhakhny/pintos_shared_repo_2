@@ -98,24 +98,29 @@ struct thread
     /**Tahan Mod*/
     struct list open_files_list;
     struct list children_list;
+	
     struct thread* parent_thread;
-    bool child_creation_success;
-    tid_t waiting_on;
-    struct file* executable_file;
+    
+	struct file* executable_file;
+	
     struct semaphore sem_wait_on_child;
     struct semaphore sem_parent_child_synch;
+	
+	bool child_creation_success;
+    
+	tid_t waiting_on;
+	
     /*process shenanigans*/
     int pid;
     struct list_elem child_elem;
     /*process shenanigans*/
+	
     int fd_last; // may not be useful
     int child_status; // may not be useful
-       /* MODIFICATION */
-    
     int exit_status;  /*thread exit status*/
     
-    /* END MODIFICATION */
-    /**End Tahan Mod*/
+	/**End Tahan Mod*/
+   
     
     /* MODIFICATION */
     
@@ -170,5 +175,9 @@ int thread_get_nice (void);
 void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
+
+/**MODIFICATION*/
+struct thread *thread_get_by_id(tid_t id);
+/***/
 
 #endif /* threads/thread.h */

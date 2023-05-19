@@ -72,9 +72,6 @@ static void schedule(void);
 void thread_schedule_tail(struct thread *prev);
 static tid_t allocate_tid(void);
 
-/*Mod*/
-struct thread *thread_get_by_id(tid_t id);
-
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
    general and it is possible in this case only because loader.S
@@ -200,20 +197,17 @@ tid_t thread_create(const char *name, int priority,
   sf->ebp = 0;
 
   struct thread *parent_thread = thread_current();
-  /**Tahan Mod*/
+  /**MODIFICATION*/
   t->parent_thread = parent_thread;
   t->child_creation_success = false;
   t->child_status = 0;
   t->waiting_on = t->tid;
   t->fd_last = 2;
   t->pid = t->tid;
-  /**MODIFICATION*/
-  //t->executable_file = filesys_open (name);
-  /***/
+  
   sema_init(&(t->sem_parent_child_synch), 0);
   sema_init(&(t->sem_wait_on_child), 0);
-
-  /**End Tahan Mod*/
+  /***/
 
   /* Add to run queue. */
   thread_unblock(t);
@@ -593,18 +587,23 @@ allocate_tid(void)
    Used by switch.S, which can't figure it out on its own. */
 uint32_t thread_stack_ofs = offsetof(struct thread, stack);
 
+/**MODIFICATION*/
 /* Get the thread by its tid */
-struct thread *thread_get_by_id(tid_t id)
+struct thread * 
+thread_get_by_id(tid_t id)
 {
-  ASSERT(id != TID_ERROR);
-  struct list_elem *e;
-  struct thread *t;
-  e = list_tail(&all_list);
-  while ((e = list_prev(e)) != list_head(&all_list))
-  {
-    t = list_entry(e, struct thread, allelem);
-    if (t->tid == id && t->status != THREAD_DYING)
-      return t;
-  }
-  return NULL;
+	ASSERT(id != TID_ERROR);
+	struct list_elem *e;
+	struct thread *t;
+	e = list_tail(&all_list);
+	while ((e = list_prev(e)) != list_head(&all_list))
+	  {
+			t = list_entry(e, struct thread, allelem);
+			if (t->tid == id && t->status != THREAD_DYING)
+			  {
+					return t;
+			  }
+	  }
+	return NULL;
 }
+/***/

@@ -12,11 +12,12 @@ void process_activate (void);
 
 struct thread* get_child(struct thread* t, int child_pid);
 /**********************************/
-struct open_file{
-    int fd;
+struct open_file
+  {
+	int fd;
     struct file *file_ptr;
     struct list_elem open_files_elem;
-};
+  };
 
 /* END MODIFICATIONS */
 

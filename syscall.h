@@ -11,11 +11,12 @@
  */
 #define USER_VIR_ADDR_BOTTOM ((void *)0x08048000)
 
-/* END MODIFICATIONS */
+/**MODIFICATION*/
+/*a lock to ensure multiple processes can't edit file at the same time*/
+struct lock file_lock; 
 
 void syscall_init (void);
-
-/* MODIFICATIONS */
+static void syscall_handler (struct intr_frame *);
 
 void halt(void);
 void exit (int status);
@@ -32,6 +33,9 @@ unsigned tell (int fd);
 void close (int fd);
 
 struct file* get_file_by_fd(int target_fd);
-/* END MODIFICATIONS */
+void get_args (struct intr_frame *f, void **arg, int num_of_args);
+void is_ptr_valid (void* vaddr);
+void *get_kernel_ptr (void *user_ptr);
+/***/
 
 #endif /* userprog/syscall.h */
