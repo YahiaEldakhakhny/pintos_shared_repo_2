@@ -93,28 +93,23 @@ struct thread
     int priority;                       /* Priority. */
     struct list_elem allelem;           /* List element for all threads list. */
 
-    /* Shared between thread.c and synch.c. */
-    struct list_elem elem;              /* List element. */
+	/* Shared between thread.c and synch.c. */
+	struct list_elem elem;              /* List element. */
     /**Tahan Mod*/
     struct list open_files_list;
     struct list children_list;
-	
     struct thread* parent_thread;
-    
 	struct file* executable_file;
 	
     struct semaphore sem_wait_on_child;
     struct semaphore sem_parent_child_synch;
 	
 	bool child_creation_success;
-    
 	tid_t waiting_on;
-	
     /*process shenanigans*/
     int pid;
     struct list_elem child_elem;
     /*process shenanigans*/
-	
     int fd_last; // may not be useful
     int child_status; // may not be useful
     int exit_status;  /*thread exit status*/

@@ -196,8 +196,8 @@ tid_t thread_create(const char *name, int priority,
   sf->eip = switch_entry;
   sf->ebp = 0;
 
-  struct thread *parent_thread = thread_current();
   /**MODIFICATION*/
+  struct thread *parent_thread = thread_current();
   t->parent_thread = parent_thread;
   t->child_creation_success = false;
   t->child_status = 0;

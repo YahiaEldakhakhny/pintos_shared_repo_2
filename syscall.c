@@ -162,12 +162,10 @@ exec (const char *cmd_line)
 {
 	struct thread* parent = thread_current();
  	(parent->child_creation_success) = false;
-	
  	if(cmd_line == NULL)
 	{
 		return -2; // cannot run
 	}
- 
  	/*create new process*/
  	int child_tid = process_execute(cmd_line);
 	if (child_tid != TID_ERROR)
@@ -204,7 +202,8 @@ halt(void)
  * @status: 0 in case success
  *         otherwise in case errors
  */
-void exit (int status)
+void 
+exit (int status)
 {
 	struct thread *t = thread_current();
  	(t->exit_status) = status;
