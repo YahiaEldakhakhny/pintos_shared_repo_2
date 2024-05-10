@@ -1,6 +1,9 @@
 # pintos_shared_repo_2
 Shared repo for pintos phase 2
 
+## Project Description
+Built system calls to manage file operations done by applications running on PintOS.
+
 ## Locations of editted files
 process.c => $PINTOSHOME/src/userprog
 
